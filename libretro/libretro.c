@@ -150,6 +150,8 @@ static double retro_fps;
 static int spen_tap_action = GENPLUSGX_SPEN_ACTION_TRIGGER;
 static int spen_barrel_action = GENPLUSGX_SPEN_ACTION_RELOAD;
 static int spen_hover_behavior = GENPLUSGX_SPEN_HOVER_CURSOR;
+static int spen_coordinate_mode = 0; /* 0=absolute, 1=relative */
+static int spen_input_mode = 0; /* 0=auto, 1=mouse, 2=lightgun */
 
 static uint32_t brm_crc[2];
 static uint8_t brm_format[0x40] =
@@ -2307,6 +2309,28 @@ static void check_variables(bool first_run)
       spen_hover_behavior = GENPLUSGX_SPEN_HOVER_LIGHTGUN_TRACK;
     else if (!strcmp(var.value, "disabled"))
       spen_hover_behavior = GENPLUSGX_SPEN_HOVER_DISABLED;
+  }
+
+  /* Parse S-Pen coordinate mode */
+  var.key = "genesis_plus_gx_spen_coordinate_mode";
+  environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
+  {
+    if (!var.value || !strcmp(var.value, "absolute"))
+      spen_coordinate_mode = 0;
+    else if (!strcmp(var.value, "relative"))
+      spen_coordinate_mode = 1;
+  }
+
+  /* Parse S-Pen input mode */
+  var.key = "genesis_plus_gx_spen_input_mode";
+  environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
+  {
+    if (!var.value || !strcmp(var.value, "auto"))
+      spen_input_mode = 0;
+    else if (!strcmp(var.value, "mouse"))
+      spen_input_mode = 1;
+    else if (!strcmp(var.value, "lightgun"))
+      spen_input_mode = 2;
   }
 
   var.key = "genesis_plus_gx_left_border";

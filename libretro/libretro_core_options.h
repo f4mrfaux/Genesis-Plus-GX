@@ -872,6 +872,35 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       "cursor"
    },
    {
+      "genesis_plus_gx_spen_coordinate_mode",
+      "S-Pen Coordinate Mode",
+      "Coordinates", 
+      "S-Pen coordinate mapping mode. Absolute provides direct screen positioning for drawing games and PICO modes. Relative provides mouse-like movement for traditional games.",
+      NULL,
+      "input",
+      {
+         { "absolute", "Absolute (Direct Positioning)" },
+         { "relative", "Relative (Mouse Movement)" },
+         { NULL, NULL },
+      },
+      "absolute"
+   },
+   {
+      "genesis_plus_gx_spen_input_mode",
+      "S-Pen Input Mode",
+      "Input Mode",
+      "S-Pen input device mapping. Mouse mode for drawing/painting games and PICO modes, Lightgun mode for shooting games, Auto selects based on detected input device.",
+      NULL,
+      "input",
+      {
+         { "auto", "Auto-Detect" },
+         { "mouse", "Force Mouse Mode" },
+         { "lightgun", "Force Lightgun Mode" },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
       "genesis_plus_gx_no_sprite_limit",
       "Remove Per-Line Sprite Limit",
       NULL,
