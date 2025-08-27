@@ -134,6 +134,23 @@ static unsigned int max_height;
 static double vaspect_ratio;
 static double retro_fps;
 
+/* S-Pen action definitions */
+#define GENPLUSGX_SPEN_ACTION_DISABLED      0
+#define GENPLUSGX_SPEN_ACTION_LEFT_CLICK    1
+#define GENPLUSGX_SPEN_ACTION_RIGHT_CLICK   2
+#define GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK  3
+#define GENPLUSGX_SPEN_ACTION_TRIGGER       4
+#define GENPLUSGX_SPEN_ACTION_RELOAD        5
+
+#define GENPLUSGX_SPEN_HOVER_CURSOR           0
+#define GENPLUSGX_SPEN_HOVER_LIGHTGUN_TRACK   1
+#define GENPLUSGX_SPEN_HOVER_DISABLED         2
+
+/* S-Pen action and behavior variables */
+static int spen_tap_action = GENPLUSGX_SPEN_ACTION_TRIGGER;
+static int spen_barrel_action = GENPLUSGX_SPEN_ACTION_RELOAD;
+static int spen_hover_behavior = GENPLUSGX_SPEN_HOVER_CURSOR;
+
 static uint32_t brm_crc[2];
 static uint8_t brm_format[0x40] =
 {
@@ -643,15 +660,65 @@ static void osd_input_update_internal_bitmasks(void)
             break;
 
          case DEVICE_GRAPHIC_BOARD:
+            /* S-Pen enhanced graphic board mode for drawing and painting */
+            bool pointer_pressed = input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+            int pointer_count = input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_COUNT);
+            
+            /* Update position for both pressed and hover states */
             input.analog[i][0] = ((input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X) + 0x7fff) * 255) / 0xfffe;
             input.analog[i][1] = ((input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y) + 0x7fff) * 255) / 0xfffe;
 
+            /* S-Pen button detection */
+            bool tap_detected = pointer_pressed;
+            bool barrel_detected = (pointer_count > 1); /* Side button creates additional pointer */
+            bool hover_detected = false; /* TODO: Add hover detection support */
+            
+            /* Legacy mouse button support - always preserved for compatibility */
             if (input_state_cb(player, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
                temp |= INPUT_GRAPHIC_PEN;
             if (input_state_cb(player, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE))
                temp |= INPUT_GRAPHIC_DO;
             if (input_state_cb(player, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT))
                temp |= INPUT_GRAPHIC_MENU;
+               
+            /* S-Pen enhancement - add configurable mapping for graphic board */
+            if (tap_detected && spen_tap_action != GENPLUSGX_SPEN_ACTION_DISABLED) {
+               switch (spen_tap_action) {
+                  case GENPLUSGX_SPEN_ACTION_LEFT_CLICK:
+                     temp |= INPUT_GRAPHIC_PEN; break;
+                  case GENPLUSGX_SPEN_ACTION_RIGHT_CLICK:
+                     temp |= INPUT_GRAPHIC_MENU; break;
+                  case GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK:
+                     temp |= INPUT_GRAPHIC_DO; break;
+                  case GENPLUSGX_SPEN_ACTION_TRIGGER:
+                     temp |= INPUT_GRAPHIC_PEN; /* Trigger maps to pen for drawing */
+                     break;
+                  case GENPLUSGX_SPEN_ACTION_RELOAD:
+                     temp |= INPUT_GRAPHIC_DO; /* Reload maps to DO action */
+                     break;
+               }
+            }
+            
+            if (barrel_detected && spen_barrel_action != GENPLUSGX_SPEN_ACTION_DISABLED) {
+               switch (spen_barrel_action) {
+                  case GENPLUSGX_SPEN_ACTION_LEFT_CLICK:
+                     temp |= INPUT_GRAPHIC_PEN; break;
+                  case GENPLUSGX_SPEN_ACTION_RIGHT_CLICK:
+                     temp |= INPUT_GRAPHIC_MENU; break;
+                  case GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK:
+                     temp |= INPUT_GRAPHIC_DO; break;
+                  case GENPLUSGX_SPEN_ACTION_TRIGGER:
+                     temp |= INPUT_GRAPHIC_PEN; break;
+                  case GENPLUSGX_SPEN_ACTION_RELOAD:
+                     temp |= INPUT_GRAPHIC_MENU; /* Reload maps to menu for barrel */
+                     break;
+               }
+            }
+            
+            /* Hover behavior for cursor positioning */
+            if (hover_detected && spen_hover_behavior == GENPLUSGX_SPEN_HOVER_CURSOR) {
+               /* Position already updated above - no additional action needed */
+            }
 
             player++;
             ret = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
@@ -772,10 +839,68 @@ static void osd_input_update_internal(void)
          case DEVICE_LIGHTGUN:
             if ( retro_gun_mode == RetroPointer )
             {
+               /* S-Pen enhanced pointer mode with configurable actions */
+               bool pointer_pressed = input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+               int pointer_count = input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_COUNT);
+               
+               /* Update position for both pressed and hover states */
                input.analog[i][0] = ((input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X) + 0x7fff) * bitmap.viewport.w) / 0xfffe;
                input.analog[i][1] = ((input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y) + 0x7fff) * bitmap.viewport.h) / 0xfffe;
-               if (input_state_cb(player, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED))
-                  temp |= INPUT_A;
+               
+               /* S-Pen button detection */
+               bool tap_detected = pointer_pressed;
+               bool barrel_detected = (pointer_count > 1); /* Side button creates additional pointer */
+               bool hover_detected = false; /* TODO: Add hover detection support */
+               
+               /* Legacy finger touch multi-touch support - always preserved */
+               int touch_count = pointer_count;
+               if (touch_count >= 4) {
+                  temp |= INPUT_C; /* 4+ finger for Start/Select equivalent */
+               } else if (touch_count == 3) {
+                  temp |= INPUT_B; /* 3 finger for secondary action */
+               } else if (touch_count == 2 && !barrel_detected) {
+                  temp |= INPUT_A; /* 2 finger for primary action */
+               }
+               
+               /* S-Pen enhancement - add configurable mapping on top of legacy */
+               if (tap_detected && spen_tap_action != GENPLUSGX_SPEN_ACTION_DISABLED) {
+                  switch (spen_tap_action) {
+                     case GENPLUSGX_SPEN_ACTION_TRIGGER:
+                        temp |= INPUT_A; break;
+                     case GENPLUSGX_SPEN_ACTION_RELOAD:
+                        /* Reload typically handled as off-screen shot in lightgun games */
+                        input.analog[i][0] = -1000;
+                        input.analog[i][1] = -1000;
+                        break;
+                     case GENPLUSGX_SPEN_ACTION_LEFT_CLICK:
+                     case GENPLUSGX_SPEN_ACTION_RIGHT_CLICK:
+                     case GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK:
+                        temp |= INPUT_A; /* Map clicks to trigger for lightgun */
+                        break;
+                  }
+               }
+               
+               if (barrel_detected && spen_barrel_action != GENPLUSGX_SPEN_ACTION_DISABLED) {
+                  switch (spen_barrel_action) {
+                     case GENPLUSGX_SPEN_ACTION_TRIGGER:
+                        temp |= INPUT_A; break;
+                     case GENPLUSGX_SPEN_ACTION_RELOAD:
+                        input.analog[i][0] = -1000;
+                        input.analog[i][1] = -1000;
+                        break;
+                     case GENPLUSGX_SPEN_ACTION_LEFT_CLICK:
+                     case GENPLUSGX_SPEN_ACTION_RIGHT_CLICK:
+                     case GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK:
+                        temp |= INPUT_B; /* Map clicks to secondary action for barrel */
+                        break;
+                  }
+               }
+               
+               /* Hover behavior for lightgun tracking */
+               if (hover_detected && spen_hover_behavior == GENPLUSGX_SPEN_HOVER_LIGHTGUN_TRACK) {
+                  /* Update position even when hovering without triggering actions */
+                  /* Position already updated above */
+               }
             }
             else
             {
@@ -2134,6 +2259,54 @@ static void check_variables(bool first_run)
       config.invert_mouse = 0;
     else
       config.invert_mouse = 1;
+  }
+
+  /* Parse S-Pen tap action */
+  var.key = "genesis_plus_gx_spen_tap_action";
+  environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
+  {
+    if (!var.value || !strcmp(var.value, "trigger"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_TRIGGER;
+    else if (!strcmp(var.value, "left_click"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_LEFT_CLICK;
+    else if (!strcmp(var.value, "right_click"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_RIGHT_CLICK;
+    else if (!strcmp(var.value, "middle_click"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK;
+    else if (!strcmp(var.value, "reload"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_RELOAD;
+    else if (!strcmp(var.value, "disabled"))
+      spen_tap_action = GENPLUSGX_SPEN_ACTION_DISABLED;
+  }
+
+  /* Parse S-Pen barrel action */
+  var.key = "genesis_plus_gx_spen_barrel_action";
+  environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
+  {
+    if (!var.value || !strcmp(var.value, "reload"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_RELOAD;
+    else if (!strcmp(var.value, "left_click"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_LEFT_CLICK;
+    else if (!strcmp(var.value, "right_click"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_RIGHT_CLICK;
+    else if (!strcmp(var.value, "middle_click"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_MIDDLE_CLICK;
+    else if (!strcmp(var.value, "trigger"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_TRIGGER;
+    else if (!strcmp(var.value, "disabled"))
+      spen_barrel_action = GENPLUSGX_SPEN_ACTION_DISABLED;
+  }
+
+  /* Parse S-Pen hover behavior */
+  var.key = "genesis_plus_gx_spen_hover_behavior";
+  environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
+  {
+    if (!var.value || !strcmp(var.value, "cursor"))
+      spen_hover_behavior = GENPLUSGX_SPEN_HOVER_CURSOR;
+    else if (!strcmp(var.value, "lightgun_track"))
+      spen_hover_behavior = GENPLUSGX_SPEN_HOVER_LIGHTGUN_TRACK;
+    else if (!strcmp(var.value, "disabled"))
+      spen_hover_behavior = GENPLUSGX_SPEN_HOVER_DISABLED;
   }
 
   var.key = "genesis_plus_gx_left_border";

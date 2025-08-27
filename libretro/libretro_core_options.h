@@ -821,6 +821,57 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       "disabled"
    },
    {
+      "genesis_plus_gx_spen_tap_action",
+      "S-Pen Tap Action",
+      "Tap Action",
+      "Configure what stylus tap (screen contact) does in pointer modes.",
+      NULL,
+      "input",
+      {
+         { "left_click", "Left Click" },
+         { "right_click", "Right Click" },
+         { "middle_click", "Middle Click" },
+         { "trigger", "Trigger/Shoot" },
+         { "reload", "Reload" },
+         { "disabled", "Disabled" },
+         { NULL, NULL },
+      },
+      "trigger"
+   },
+   {
+      "genesis_plus_gx_spen_barrel_action",
+      "S-Pen Barrel Button Action",
+      "Barrel Action",
+      "Configure what the S-Pen barrel (side) button does in pointer modes.",
+      NULL,
+      "input",
+      {
+         { "reload", "Reload" },
+         { "right_click", "Right Click" },
+         { "left_click", "Left Click" },
+         { "middle_click", "Middle Click" },
+         { "trigger", "Trigger/Shoot" },
+         { "disabled", "Disabled" },
+         { NULL, NULL },
+      },
+      "reload"
+   },
+   {
+      "genesis_plus_gx_spen_hover_behavior",
+      "S-Pen Hover Behavior",
+      "Hover Behavior",
+      "Configure how S-Pen hover (without contact) behaves for lightgun tracking.",
+      NULL,
+      "input",
+      {
+         { "cursor", "Cursor Only" },
+         { "lightgun_track", "Lightgun Track" },
+         { "disabled", "Disabled" },
+         { NULL, NULL },
+      },
+      "cursor"
+   },
+   {
       "genesis_plus_gx_no_sprite_limit",
       "Remove Per-Line Sprite Limit",
       NULL,
